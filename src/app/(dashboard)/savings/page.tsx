@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatCurrency } from '@/lib/utils';
-import { PiggyBank, Sparkles, CheckCircle, TrendingDown, CreditCard, AlertTriangle, Lightbulb } from 'lucide-react';
+import { PiggyBank, Sparkles, CheckCircle, TrendingDown, CreditCard, AlertTriangle, Lightbulb, Download } from 'lucide-react';
 
 interface Insight {
     id: string;
@@ -50,6 +50,29 @@ export default function SavingsPage() {
         .filter((i) => !i.isActioned)
         .reduce((sum, i) => sum + i.potentialSavings, 0);
 
+    const exportInsights = () => {
+        const csvCell = (value: string) => {
+            const safeValue = /^\s*[=+\-@]/.test(value) ? `'${value}` : value;
+            return `"${safeValue.replace(/"/g, '""')}"`;
+        };
+        const rows = [
+            'Type,Title,Description,Potential Savings,Actioned',
+            ...insights.map((insight) => [
+                csvCell(insight.insightType),
+                csvCell(insight.title),
+                csvCell(insight.description),
+                insight.potentialSavings.toFixed(2),
+                insight.isActioned ? 'Yes' : 'No',
+            ].join(',')),
+        ];
+        const url = URL.createObjectURL(new Blob([rows.join('\r\n')], { type: 'text/csv;charset=utf-8' }));
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = 'savings-insights.csv';
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
     const markAsActioned = async (id: string) => {
         // Update locally immediately for better UX
         setInsights(insights.map(i =>
@@ -74,14 +97,20 @@ export default function SavingsPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div>
-                <h1 className="text-3xl font-bold text-white flex items-center gap-3">
-                    <PiggyBank className="w-8 h-8 text-green-400" />
-                    Savings Opportunities
-                </h1>
-                <p className="text-slate-400 mt-1">
-                    AI-detected ways to reduce your spending
-                </p>
+            <div className="flex items-center justify-between gap-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-white flex items-center gap-3">
+                        <PiggyBank className="w-8 h-8 text-green-400" />
+                        Savings Opportunities
+                    </h1>
+                    <p className="text-slate-400 mt-1">
+                        AI-detected ways to reduce your spending
+                    </p>
+                </div>
+                <Button variant="outline" className="border-slate-600 text-slate-300 hover:bg-slate-700" onClick={exportInsights} disabled={insights.length === 0}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Export CSV
+                </Button>
             </div>
 
             {/* Summary Card */}

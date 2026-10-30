@@ -5,6 +5,26 @@ import { analyzeTransactions, detectAlerts } from '@/lib/claude';
 import prisma from '@/lib/prisma';
 import { DEMO_TRANSACTIONS, DEMO_INSIGHTS } from '@/lib/demo-data';
 
+export async function GET() {
+    try {
+        const session = await getServerSession(authOptions);
+        if (!session?.user?.id && process.env.DEMO_MODE !== 'true') {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
+        const insights = process.env.DEMO_MODE === 'true'
+            ? DEMO_INSIGHTS
+            : await prisma.aIInsight.findMany({
+                where: { userId: session!.user!.id },
+                orderBy: { createdAt: 'desc' },
+            });
+        return NextResponse.json({ insights });
+    } catch (error) {
+        console.error('Error fetching insights:', error);
+        return NextResponse.json({ error: 'Failed to fetch insights' }, { status: 500 });
+    }
+}
+
 export async function POST(request: NextRequest) {
     try {
         const session = await getServerSession(authOptions);
